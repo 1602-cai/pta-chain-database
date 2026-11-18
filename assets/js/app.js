@@ -1,7 +1,8 @@
-/* PTA产业链数据库 · 本地静态版（布局与交互严格参考期市金研） */
+/* 产业链数据库 · 多品种本地静态版（布局与交互严格参考期市金研） */
 (function (global) {
   "use strict";
   var DB = global.DB;
+  var COMS = DB.commodities;
   var charts = [];
 
   function $(sel, root) { return (root || document).querySelector(sel); }
@@ -12,7 +13,13 @@
     });
   }
   function loading(t) { return '<div class="loading">' + esc(t) + "</div>"; }
-  function empty(t) { return '<div class="empty">' + esc(t) + "</div>"; }
+  function getCom(cid) { return COMS.filter(function (c) { return c.id === cid; })[0]; }
+  function findSheet(com, sid) { return com.sheets.filter(function (s) { return s.id === sid; })[0]; }
+  function totals() {
+    var sec = 0, ch = 0;
+    COMS.forEach(function (c) { sec += c.sheets.length; ch += c.chartCount; });
+    return { sec: sec, ch: ch };
+  }
 
   /* ---------- 路由 ---------- */
   function parseRoute() {
@@ -20,8 +27,7 @@
     var qm = h.indexOf("?");
     var query = qm >= 0 ? h.slice(qm + 1) : "";
     var path = qm >= 0 ? h.slice(0, qm) : h;
-    var parts = path.split("/").filter(Boolean);
-    return { parts: parts, query: query };
+    return { parts: path.split("/").filter(Boolean), query: query };
   }
   function setNav(key) {
     $$("#nav .nav-link").forEach(function (a) {
@@ -29,30 +35,46 @@
     });
   }
   function route() {
-    var r = parseRoute();
-    var p = r.parts;
+    var r = parseRoute(), p = r.parts;
     charts = [];
-    if (p[0] === "data" && p[1] === "pta" && p[2]) {
-      setNav("data");
-      viewSection(p[2], r.query);
+    if (p[0] === "data" && p[1] && p[2]) {
+      setNav("data"); viewSection(p[1], p[2], r.query);
+    } else if (p[0] === "data" && p[1]) {
+      setNav("data"); viewCommodity(p[1]);
     } else if (p[0] === "data") {
-      setNav("data");
-      viewOverview(false);
+      setNav("data"); viewHome();
     } else if (p[0] === "about") {
-      setNav("about");
-      viewAbout();
+      setNav("about"); viewAbout();
     } else {
-      setNav("home");
-      viewOverview(true);
+      setNav("home"); viewHome();
     }
   }
 
-  /* ---------- 首页 / 板块总览 ---------- */
-  function sectionCards() {
-    return DB.sheets.map(function (s) {
+  /* ---------- 首页：品种库 ---------- */
+  function viewHome() {
+    var t = totals();
+    var cards = COMS.map(function (c) {
+      var first = c.sheets[0];
+      return '<a class="lib-card" style="--accent:' + c.color + '" href="#/data/' + c.id + '">' +
+        '<div class="lib-top"><span class="lib-name">' + esc(c.name) + "</span>" +
+        '<span class="lib-tag">' + c.sheets.length + " 板块</span></div>" +
+        '<div class="lib-desc">' + esc(first ? first.title.replace(/^\d+\s*/, "") + " 等" : "") + "</div>" +
+        '<div class="lib-foot"><span>截至 ' + esc(c.updated || "—") + "</span><b>" + c.chartCount + " 图</b></div>" +
+        "</a>";
+    }).join("");
+    $("#view").innerHTML =
+      '<div class="section"><div class="section-head"><h2>品种库</h2>' +
+      '<span class="hint">' + COMS.length + " 品种 / " + t.sec + " 板块 / " + t.ch + " 张图 · 分年季节性叠图</span></div>" +
+      '<div class="lib-grid">' + cards + "</div></div>";
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- 品种板块总览 ---------- */
+  function sectionCards(com) {
+    return com.sheets.map(function (s) {
       var first = s.charts[0];
       var desc = s.subtitle.split("｜")[0];
-      return '<a class="lib-card" style="--accent:' + DB.color + '" href="#/data/pta/' + s.id + '">' +
+      return '<a class="lib-card" style="--accent:' + com.color + '" href="#/data/' + com.id + "/" + s.id + '">' +
         '<div class="lib-top"><span class="lib-name">' + esc(s.title.replace(/^\d+\s*/, "")) + "</span>" +
         '<span class="lib-tag">' + esc(s.title.slice(0, 2)) + "</span></div>" +
         '<div class="lib-desc">' + esc(desc) + "</div>" +
@@ -60,39 +82,48 @@
         "</a>";
     }).join("");
   }
-  function viewOverview(withHero) {
+  function viewCommodity(cid) {
+    var com = getCom(cid);
+    if (!com) { viewHome(); return; }
     $("#view").innerHTML =
-      '<div class="section"><div class="section-head"><h2>板块总览</h2>' +
-      '<span class="hint">' + DB.sheets.length + " 板块 / " + DB.chartCount + " 张图 · 分年季节性叠图</span></div>" +
-      '<div class="lib-grid">' + sectionCards() + "</div></div>";
+      '<div class="section"><div class="section-head">' +
+      '<h2><a class="crumb" href="#/">品种库</a> / ' + esc(com.name) + "</h2>" +
+      '<span class="hint">' + com.sheets.length + " 板块 / " + com.chartCount + " 张图 · 截至 " + esc(com.updated || "—") + "</span></div>" +
+      '<div class="lib-grid">' + sectionCards(com) + "</div></div>";
     window.scrollTo(0, 0);
   }
 
   /* ---------- 板块视图 ---------- */
-  function findSheet(id) {
-    return DB.sheets.filter(function (s) { return s.id === id; })[0];
+  function switcher(cur) {
+    return '<div class="side-switch"><select id="com-switch" aria-label="切换品种">' +
+      COMS.map(function (c) {
+        return '<option value="' + c.id + '"' + (c.id === cur ? " selected" : "") + ">" + esc(c.name) + "</option>";
+      }).join("") + "</select></div>";
   }
-  function viewSection(sid, query) {
-    var sheet = findSheet(sid) || DB.sheets[0];
+  function viewSection(cid, sid, query) {
+    var com = getCom(cid);
+    if (!com) { viewHome(); return; }
+    var sheet = findSheet(com, sid) || com.sheets[0];
     $("#view").innerHTML =
       '<div class="data-layout">' +
         '<aside class="sidebar">' +
-          '<div class="side-head"><a class="back" href="#/">← 全部板块</a>' +
-            '<h2 style="--accent:' + DB.color + '">' + esc(DB.name) + "数据库</h2>" +
-            '<div class="side-sub">' + DB.sheets.length + " 板块 / " + DB.chartCount + " 张图</div>" +
+          '<div class="side-head"><a class="back" href="#/data/' + com.id + '">← ' + esc(com.name) + "</a>" +
+            '<h2 style="--accent:' + com.color + '">' + esc(com.name) + "数据库</h2>" +
+            '<div class="side-sub">' + com.sheets.length + " 板块 / " + com.chartCount + " 张图</div>" +
           "</div>" +
-          '<div class="side-search"><input id="side-q" placeholder="在本库中搜索图表…" autocomplete="off"></div>' +
-          '<nav class="side-nav">' + DB.sheets.map(function (s) {
-            return '<a href="#/data/pta/' + s.id + '" class="' + (s.id === sheet.id ? "on" : "") +
+          switcher(com.id) +
+          '<div class="side-search"><input id="side-q" placeholder="搜索全部品种图表…" autocomplete="off"></div>' +
+          '<nav class="side-nav">' + com.sheets.map(function (s) {
+            return '<a href="#/data/' + com.id + "/" + s.id + '" class="' + (s.id === sheet.id ? "on" : "") +
               '" data-sheet="' + s.id + '">' + esc(s.title) + "</a>";
           }).join("") + "</nav>" +
           '<div id="search-results" class="search-results"></div>' +
         "</aside>" +
         '<main class="data-main" id="data-main">' + loading("正在加载板块数据…") + "</main>" +
       "</div>";
-
+    $("#com-switch").addEventListener("change", function () { location.hash = "#/data/" + this.value; });
     $("#side-q").addEventListener("input", function () { searchIn(this.value); });
-    renderSheet(sheet, query);
+    renderSheet(com, sheet, query);
   }
 
   function searchIn(kw) {
@@ -100,23 +131,25 @@
     kw = (kw || "").trim();
     if (!kw) { box.innerHTML = ""; return; }
     var hits = [];
-    DB.sheets.forEach(function (s) {
-      s.charts.forEach(function (c, i) {
-        if (c.name.indexOf(kw) >= 0 || (c.note || "").indexOf(kw) >= 0) {
-          hits.push({ sheet: s, idx: i, name: c.name });
-        }
+    COMS.forEach(function (com) {
+      com.sheets.forEach(function (s) {
+        s.charts.forEach(function (c, i) {
+          if (c.name.indexOf(kw) >= 0 || (c.note || "").indexOf(kw) >= 0) {
+            hits.push({ com: com, sheet: s, idx: i, name: c.name });
+          }
+        });
       });
     });
     if (!hits.length) { box.innerHTML = '<div class="sr-empty">没有匹配的图表</div>'; return; }
     box.innerHTML = '<div class="sr-head">匹配 ' + hits.length + " 张图</div>" +
       hits.slice(0, 40).map(function (h) {
-        return '<a class="sr-item" href="#/data/pta/' + h.sheet.id + "?c=" + h.idx + '">' +
-          '<span class="sr-sheet">' + esc(h.sheet.title.replace(/^\d+\s*/, "")) + "</span>" +
+        return '<a class="sr-item" href="#/data/' + h.com.id + "/" + h.sheet.id + "?c=" + h.idx + '">' +
+          '<span class="sr-sheet">' + esc(h.com.name) + " · " + esc(h.sheet.title.replace(/^\d+\s*/, "")) + "</span>" +
           esc(h.name) + "</a>";
       }).join("");
   }
 
-  function renderSheet(sheet, query) {
+  function renderSheet(com, sheet, query) {
     var anchor = -1;
     var m = /[?&]c=(\d+)/.exec(query || "");
     if (m) anchor = +m[1];
@@ -208,27 +241,28 @@
 
   /* ---------- 数据说明 ---------- */
   function viewAbout() {
+    var t = totals();
     var freqs = [
-      ["日度", "按交易日对齐，横轴为 1月1日–12月31日，各年曲线按年内日期叠放"],
+      ["日度", "按日历日对齐，横轴为 1月1日–12月31日，各年曲线按年内日期叠放"],
       ["周度", "按 ISO 周序对齐，横轴为第1周–第53周"],
-      ["月度", "按月份对齐，横轴为 1月–12月；年内累计类指标每年 1 月重置"],
+      ["月度", "按月份对齐，横轴为 1月–12月"],
       ["年度", "产能等年度指标，展示全部历史年份"],
     ];
     $("#view").innerHTML =
-      '<div class="page-head"><h1>数据说明</h1><span class="hint">PTA产业链数据库 · 本地静态版</span></div>' +
+      '<div class="page-head"><h1>数据说明</h1><span class="hint">产业链数据库 · 多品种本地静态版</span></div>' +
       '<section class="balance-block about-block"><div class="bb-head"><h2>数据来源与更新</h2></div>' +
       '<div class="about-body">' +
-      "<p>数据来源：<b>" + esc(DB.sources) + "</b>。数据截至 <b>" + esc(DB.updated) + "</b>，共 " + DB.sheets.length + " 个板块、" + DB.chartCount + " 张图表。</p>" +
-      "<p>原始数据为源数据库各指标序列；<span class=\"pill soft\">推算数据</span> 为基于原始序列计算所得，包括基差（现货−期货）、月差（合约价差）、PX-石脑油等品种价差、累计值差分得到的当月值、表观消费量（产量+净进口）与产能同比等。</p>" +
-      "<p>每张图默认展示最近 5 个有数据的年份（年度图展示全部历史），点击年份标签可显示/隐藏对应曲线，「近两年」仅保留最近两年，「全部」恢复全部年份。鼠标悬停可查看各年同一期的数值。</p>" +
+      "<p>数据来源：<b>IFIND、隆众资讯、卓创资讯、百川资讯等</b>，经本地整理。共 <b>" + COMS.length + "</b> 个品种、<b>" + t.sec + "</b> 个板块、<b>" + t.ch + "</b> 张图表，各品种数据截至日期见品种卡片。</p>" +
+      "<p>原始数据为源数据库各指标序列；<span class=\"pill soft\">推算数据</span> 为基于原始序列计算所得（如基差、月差、品种价差、累计值差分得到的当月值、表观消费量与产能同比等）。</p>" +
+      "<p>每张图默认展示最近 5 个有数据的年份（年度图展示全部历史），点击年份标签可显示/隐藏对应曲线，「近两年」仅保留最近两年，「全部」恢复全部年份。鼠标悬停可查看各年同一期的数值。侧栏搜索框可跨全部品种检索图表。</p>" +
       "</div></section>" +
       '<section class="balance-block about-block"><div class="bb-head"><h2>频率与季节性对齐</h2></div>' +
       '<div class="about-body"><table class="dt about-table"><tbody>' +
       freqs.map(function (f) { return '<tr><th><span class="pill">' + f[0] + "</span></th><td>" + esc(f[1]) + "</td></tr>"; }).join("") +
       "</tbody></table></div></section>" +
-      '<section class="balance-block about-block"><div class="bb-head"><h2>板块覆盖</h2></div>' +
+      '<section class="balance-block about-block"><div class="bb-head"><h2>品种覆盖</h2></div>' +
       '<div class="about-body"><ol class="about-list">' +
-      DB.sheets.map(function (s) { return '<li><a href="#/data/pta/' + s.id + '">' + esc(s.title) + "</a> · " + s.charts.length + " 张图</li>"; }).join("") +
+      COMS.map(function (c) { return '<li><a href="#/data/' + c.id + '">' + esc(c.name) + "</a> · " + c.sheets.length + " 板块 / " + c.chartCount + " 图</li>"; }).join("") +
       "</ol></div></section>" +
       '<section class="balance-block about-block"><div class="bb-head"><h2>风险提示与免责声明</h2></div>' +
       '<div class="about-body legal">' +

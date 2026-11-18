@@ -512,13 +512,13 @@ table.bt tbody tr:hover th { background: var(--panel-2); }
 .login-card.noauth .lc-sub { margin-bottom: 22px; line-height: 1.85; }
 
 
-/* ---------- 图表水印：每张图铺「PTA产业链数据库」 ---------- */
+/* ---------- 图表水印：每张图铺「产业链数据库」 ---------- */
 .chart-card, .balance-block { position: relative; }
 .chart-card::after, .balance-block::after {
   content: "";
   position: absolute; inset: 0;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27230%27%20height%3D%27128%27%3E%3Cg%20transform%3D%27rotate%28-22%20115%2064%29%27%3E%3Ctext%20x%3D%27115%27%20y%3D%2770%27%20text-anchor%3D%27middle%27%20font-family%3D%27PingFang%20SC%2CMicrosoft%20YaHei%2Csans-serif%27%20font-size%3D%2716%27%20font-weight%3D%27600%27%20letter-spacing%3D%273%27%20fill%3D%27%2316202e%27%20fill-opacity%3D%270.16%27%3EPTA%E4%BA%A7%E4%B8%9A%E9%93%BE%E6%95%B0%E6%8D%AE%E5%BA%93%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27230%27%20height%3D%27128%27%3E%3Cg%20transform%3D%27rotate%28-22%20115%2064%29%27%3E%3Ctext%20x%3D%27115%27%20y%3D%2770%27%20text-anchor%3D%27middle%27%20font-family%3D%27PingFang%20SC%2CMicrosoft%20YaHei%2Csans-serif%27%20font-size%3D%2716%27%20font-weight%3D%27600%27%20letter-spacing%3D%273%27%20fill%3D%27%2316202e%27%20fill-opacity%3D%270.16%27%3E%E4%BA%A7%E4%B8%9A%E9%93%BE%E6%95%B0%E6%8D%AE%E5%BA%93%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fsvg%3E");
   background-repeat: repeat;
   background-position: center;
   z-index: 2;
@@ -539,3 +539,9 @@ table.bt tbody tr:hover th { background: var(--panel-2); }
 .about-list a { color: var(--text-2); }
 .about-list a:hover { color: var(--gold); }
 @media (max-width: 700px) { .about-list { columns: 1; } }
+/* ---------- 多品种：面包屑与品种切换器 ---------- */
+.crumb { color: var(--muted); font-weight: 600; }
+.crumb:hover { color: var(--gold); }
+.side-switch { padding: 0 16px 10px; }
+.side-switch select { width: 100%; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); color: var(--text); font-size: 13px; cursor: pointer; }
+.side-switch select:focus { outline: none; border-color: var(--gold); }
