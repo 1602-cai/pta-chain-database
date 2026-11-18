@@ -61,26 +61,7 @@
     }).join("");
   }
   function viewOverview(withHero) {
-    var hero = "";
-    if (withHero) {
-      hero =
-        '<section class="hero">' +
-        '<div class="eyebrow">PTA INDUSTRY CHAIN DATABASE</div>' +
-        "<h1>PTA产业链数据库</h1>" +
-        '<p class="hero-sub">' +
-        '<span class="hs-line">覆盖 <b>油端调油 · 芳烃 · PX · PTA · 乙二醇 · 聚酯 · 织造终端</b> 全链条基本面数据。</span>' +
-        '<span class="hs-line"><span class="hs-item">价格基差与月差</span><span class="hs-item">开工产量与检修</span><span class="hs-item">库存与进出口</span><span class="hs-item">工艺利润与终端需求</span></span>' +
-        "</p>" +
-        '<div class="hero-stats">' +
-        "<div><b>" + DB.sheets.length + "</b><span>板块</span></div>" +
-        "<div><b>" + DB.chartCount + "</b><span>张图</span></div>" +
-        "<div><b>" + esc(DB.updated) + "</b><span>数据截至</span></div>" +
-        "</div>" +
-        '<div class="hero-actions"><a class="btn primary" href="#/data/pta/' + DB.sheets[0].id + '">进入数据库</a>' +
-        '<a class="btn ghost" href="#/about">数据说明</a></div>' +
-        "</section>";
-    }
-    $("#view").innerHTML = hero +
+    $("#view").innerHTML =
       '<div class="section"><div class="section-head"><h2>板块总览</h2>' +
       '<span class="hint">' + DB.sheets.length + " 板块 / " + DB.chartCount + " 张图 · 分年季节性叠图</span></div>" +
       '<div class="lib-grid">' + sectionCards() + "</div></div>";
